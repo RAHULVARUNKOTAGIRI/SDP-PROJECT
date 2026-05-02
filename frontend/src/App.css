@@ -1,0 +1,241 @@
+:root{
+  --bg: #eef2ff;
+  --card: rgba(255,255,255,0.85);
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: rgba(15,23,42,0.10);
+  --shadow: 0 20px 40px rgba(15,23,42,0.12);
+
+  /* 🔥 vibrant colors */
+  --good: #22c55e;
+  --mild: #4ade80;
+  --moderate: #f59e0b;
+  --bad: #ef4444;
+
+  --primary: #4f46e5;
+  --primary2: #6366f1;
+}
+
+*{ box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  color: var(--text);
+}
+
+.page{
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 30px 18px 50px;
+}
+
+.header{
+  display:flex;
+  justify-content: space-between;
+  align-items:flex-end;
+  margin-bottom: 22px;
+}
+
+h1{
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+
+  /* 🔥 gradient text */
+  background: linear-gradient(135deg, #4f46e5, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle{
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 18px;
+}
+
+@media (max-width: 900px){
+  .grid{ grid-template-columns: 1fr; }
+}
+
+/* 🔥 Glassmorphism card */
+.card{
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.3);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+  border-radius: 18px;
+  padding: 18px;
+  transition: 0.3s ease;
+}
+
+.card:hover{
+  transform: translateY(-4px);
+  box-shadow: 0 25px 50px rgba(15,23,42,0.15);
+}
+
+.uploadRow{
+  display:flex;
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.fileButton{
+  position: relative;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.fileButton input{
+  position:absolute;
+  inset:0;
+  opacity:0;
+}
+
+/* 🔥 Attractive button */
+.primary{
+  background: linear-gradient(135deg, var(--primary), var(--primary2));
+  color: white;
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 10px 16px;
+  box-shadow: 0 12px 24px rgba(79,70,229,0.3);
+  transition: 0.25s;
+}
+
+.primary:hover{
+  transform: scale(1.05);
+  box-shadow: 0 16px 30px rgba(79,70,229,0.4);
+}
+
+.preview{
+  margin-top: 12px;
+  border-radius: 14px;
+  overflow:hidden;
+  border: 1px solid var(--border);
+}
+
+.preview img{
+  width:100%;
+  max-height:360px;
+  object-fit: contain;
+}
+
+/* 🔥 Inputs */
+input, select{
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #cbd5f5;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+input:focus, select:focus{
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(79,70,229,0.2);
+  outline: none;
+}
+
+.formRow{
+  display:flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.fullInput{
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* 🔥 Result card */
+.resultCard{
+  margin-top: 10px;
+  border-radius: 14px;
+  padding: 16px;
+  background: rgba(255,255,255,0.7);
+  border: 1px solid var(--border);
+}
+
+.resultTop{
+  display:flex;
+  justify-content: space-between;
+}
+
+.v{
+  font-size: 22px;
+  font-weight: 800;
+}
+
+/* 🔥 Dynamic badge */
+.badge{
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+/* 🔥 Explanation */
+.explainText{
+  margin-top: 10px;
+  line-height: 1.6;
+  white-space: pre-line;   /* ✅ THIS FIXES IT */
+}
+
+/* 🔥 Error box */
+.alert{
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(239,68,68,0.1);
+  color: #b91c1c;
+}
+
+/* 🔥 Loader */
+.spinner{
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.5);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.uploadRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.page {
+  min-height: 100vh;   
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(56,189,248,0.35), transparent 60%),
+    radial-gradient(1000px 600px at 90% 0%, rgba(139,92,246,0.30), transparent 55%),
+    linear-gradient(135deg, #e0f2fe, #eef2ff, #f0fdf4);
+}
+
+@keyframes spin{
+  to{ transform: rotate(360deg); }
+}
