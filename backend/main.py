@@ -35,7 +35,7 @@ app = FastAPI(title="Diabetic Retinopathy Detection API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"]
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,13 +50,19 @@ def _load_model() -> Optional[object]:
     if _model is not None:
         return _model
 
-    model_path = os.getenv("MODEL_PATH", os.path.join(os.path.dirname(__file__), "model.h5"))
+    model_path = "model.h5"
+
+    print("CURRENT DIR:", os.getcwd())
+    print("FILES:", os.listdir())
+
     if not os.path.exists(model_path):
-        _model = None
+        print("❌ MODEL NOT FOUND")
         return None
 
     import tensorflow as tf
     _model = tf.keras.models.load_model(model_path)
+    print("✅ MODEL LOADED")
+
     return _model
 
 
