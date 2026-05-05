@@ -3,10 +3,13 @@ import os
 from typing import Optional
 
 import numpy as np
-from fastapi import FastAPI, File, HTTPException, UploadFile, Form
+from fastapi import FastAPI, File, HTTPException, UploadFile, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from PIL import Image
+
+# Suppress TensorFlow CPU instruction warnings
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 LABELS = ["No_DR", "Mild", "Moderate", "Severe", "Proliferate_DR"]
 IMAGE_SIZE = (224, 224)
@@ -47,7 +50,7 @@ def _build_model():
     base = tf.keras.applications.MobileNetV2(
         input_shape=(224, 224, 3),
         include_top=False,
-        weights=None
+        weights="imagenet"
     )
     inputs = tf.keras.Input(shape=(224, 224, 3), name="input_layer")
     x = base(inputs, training=False)
@@ -63,25 +66,31 @@ def _load_model() -> Optional[object]:
     if _model is not None:
         return _model
 
+    import tensorflow as tf
+
+    # Try loading full saved model first
+    for model_path in ["model.keras", "model.h5"]:
+        if os.path.exists(model_path):
+            try:
+                _model = tf.keras.models.load_model(model_path)
+                print(f"✅ MODEL LOADED FROM {model_path}")
+                return _model
+            except Exception as e:
+                print(f"❌ Failed to load {model_path}: {e}")
+
+    # Fallback: try weights file
     weights_path = "model_weights.weights.h5"
+    if os.path.exists(weights_path):
+        try:
+            _model = _build_model()
+            _model.load_weights(weights_path)
+            print("✅ MODEL LOADED FROM WEIGHTS")
+            return _model
+        except Exception as e:
+            print("❌ MODEL LOAD ERROR:", e)
 
-    print("CURRENT DIR:", os.getcwd())
-    print("FILES:", os.listdir())
-
-    if not os.path.exists(weights_path):
-        print("❌ WEIGHTS FILE NOT FOUND")
-        return None
-
-    try:
-        import tensorflow as tf
-        _model = _build_model()
-        _model.load_weights(weights_path)
-        print("✅ MODEL LOADED FROM WEIGHTS")
-    except Exception as e:
-        print("❌ MODEL LOAD ERROR:", e)
-        return None
-
-    return _model
+    print("❌ NO MODEL FILE FOUND")
+    return None
 
 
 def preprocess_image(image_bytes: bytes) -> np.ndarray:
@@ -97,8 +106,20 @@ def preprocess_image(image_bytes: bytes) -> np.ndarray:
     return arr
 
 
-@app.get("/health")
-def health():
+# Root route — fixes 404 on GET /
+@app.get("/")
+def root():
+    return {
+        "status": "ok",
+        "message": "Diabetic Retinopathy Detection API is running",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
+
+# Health route — supports both GET and HEAD (fixes 405 error)
+@app.api_route("/health", methods=["GET", "HEAD"])
+def health(request: Request):
     model = _load_model()
     return {"status": "ok", "model_loaded": bool(model)}
 
