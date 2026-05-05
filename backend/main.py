@@ -50,7 +50,7 @@ def _load_model() -> Optional[object]:
     if _model is not None:
         return _model
 
-    model_path = "model.h5"
+    model_path = "model.keras"
 
     print("CURRENT DIR:", os.getcwd())
     print("FILES:", os.listdir())
@@ -60,8 +60,7 @@ def _load_model() -> Optional[object]:
         return None
 
     import tensorflow as tf
-    _model = tf.keras.models.load_model(model_path)
-    print("✅ MODEL LOADED")
+    _model = tf.keras.models.load_model(model_path, compile=False)
 
     return _model
 
