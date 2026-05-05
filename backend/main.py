@@ -8,12 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from PIL import Image
 
-
 LABELS = ["No_DR", "Mild", "Moderate", "Severe", "Proliferate_DR"]
 IMAGE_SIZE = (224, 224)
 
 
-# ✅ Patient Model
 class Patient(BaseModel):
     name: str
     age: int
@@ -23,7 +21,6 @@ class Patient(BaseModel):
     symptoms: str
 
 
-# ✅ Response Model
 class PredictResponse(BaseModel):
     label: str
     confidence: float
@@ -45,22 +42,44 @@ app.add_middleware(
 _model = None
 
 
+def _build_model():
+    import tensorflow as tf
+    base = tf.keras.applications.MobileNetV2(
+        input_shape=(224, 224, 3),
+        include_top=False,
+        weights=None
+    )
+    inputs = tf.keras.Input(shape=(224, 224, 3), name="input_layer")
+    x = base(inputs, training=False)
+    x = tf.keras.layers.GlobalAveragePooling2D()(x)
+    x = tf.keras.layers.Dropout(0.2)(x)
+    outputs = tf.keras.layers.Dense(5, activation="softmax")(x)
+    model = tf.keras.Model(inputs, outputs)
+    return model
+
+
 def _load_model() -> Optional[object]:
     global _model
     if _model is not None:
         return _model
 
-    model_path = "model.keras"
+    weights_path = "model_weights.weights.h5"
 
     print("CURRENT DIR:", os.getcwd())
     print("FILES:", os.listdir())
 
-    if not os.path.exists(model_path):
-        print("❌ MODEL NOT FOUND")
+    if not os.path.exists(weights_path):
+        print("❌ WEIGHTS FILE NOT FOUND")
         return None
 
-    import tensorflow as tf
-    _model = tf.keras.models.load_model(model_path, compile=False)
+    try:
+        import tensorflow as tf
+        _model = _build_model()
+        _model.load_weights(weights_path)
+        print("✅ MODEL LOADED FROM WEIGHTS")
+    except Exception as e:
+        print("❌ MODEL LOAD ERROR:", e)
+        return None
 
     return _model
 
@@ -69,11 +88,12 @@ def preprocess_image(image_bytes: bytes) -> np.ndarray:
     try:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     except Exception as e:
-        raise HTTPException(status_code=400, detail="Invalid image file.") from e
+        raise HTTPException(status_code=400, detail="Invalid image file.")
 
     img = img.resize(IMAGE_SIZE)
     arr = np.array(img).astype(np.float32) / 255.0
     arr = np.expand_dims(arr, axis=0)
+    print("IMAGE SHAPE:", arr.shape)
     return arr
 
 
@@ -101,74 +121,76 @@ async def predict(
 
     model = _load_model()
     if model is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Model not found. Place 'model.h5' in backend folder.",
-        )
+        raise HTTPException(status_code=500, detail="Model not loaded.")
 
     image_bytes = await file.read()
     x = preprocess_image(image_bytes)
 
     try:
         preds = model.predict(x)
+        preds = np.array(preds).reshape(-1)
+        print("PREDICTIONS:", preds)
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Model prediction failed.") from e
-
-    preds = np.array(preds).reshape(-1)
+        print("❌ PREDICTION ERROR:", e)
+        raise HTTPException(status_code=500, detail=f"Model error: {str(e)}")
 
     idx = int(np.argmax(preds))
     confidence = float(preds[idx])
     label = LABELS[idx]
 
-    # 🔥 EXPLANATION WITH BULLET POINTS ONLY FOR RECOMMENDATION
-
     if label == "No_DR":
-        explanation = f"""
+        explanation = """
 No signs of diabetic retinopathy were detected.
+
 Your retina appears healthy. This means there is currently low risk of vision damage.
 However, since diabetes can affect eyes over time, regular checkups are important.
-Recommendation:
-• Maintain good blood sugar control
-• Get eye checkup every 6–12 months
-"""
 
+Recommendation:
+- Maintain good blood sugar control
+- Get eye checkup every 6–12 months
+"""
     elif label == "Mild":
-        explanation = f"""
+        explanation = """
 Mild diabetic retinopathy detected.
+
 This is an early stage where small changes are beginning in blood vessels.
 Vision is usually not affected yet.
-Recommendation:
-• Monitor regularly
-• Control blood sugar strictly
-• Visit doctor if symptoms increase
-"""
 
+Recommendation:
+- Monitor regularly
+- Control blood sugar strictly
+- Visit doctor if symptoms increase
+"""
     elif label == "Moderate":
-        explanation = f"""
+        explanation = """
 Moderate diabetic retinopathy detected.
+
 Blood vessels are becoming more damaged and may start affecting vision.
-Recommendation:
-• Consult an ophthalmologist soon
-• Follow proper diabetes management
-• Regular monitoring is required
-"""
 
+Recommendation:
+- Consult an ophthalmologist soon
+- Follow proper diabetes management
+- Regular monitoring is required
+"""
     elif label == "Severe":
-        explanation = f"""
+        explanation = """
 Severe diabetic retinopathy detected.
-Significant damage is present and vision loss risk is high.
-Recommendation:
-• Immediate medical attention required
-• Specialist consultation is necessary
-"""
 
-    else:
-        explanation = f"""
-Proliferative diabetic retinopathy detected.
-This is an advanced stage where abnormal blood vessels grow in the retina.
+Significant damage is present and vision loss risk is high.
+
 Recommendation:
-• Urgent treatment required
-• Risk of blindness if untreated
+- Immediate medical attention required
+- Specialist consultation is necessary
+"""
+    else:
+        explanation = """
+Proliferative diabetic retinopathy detected.
+
+This is an advanced stage where abnormal blood vessels grow in the retina.
+
+Recommendation:
+- Urgent treatment required
+- Risk of blindness if untreated
 """
 
     return PredictResponse(
